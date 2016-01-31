@@ -718,6 +718,8 @@ class OpenStackComputeShell(object):
         # Parse args once to find version and debug settings
         parser = self.get_base_parser(argv)
 
+        logger.debug("tnova logger shell commands")
+
         # NOTE(dtroyer): Hackery to handle --endpoint_type due to argparse
         #                thinking usage-list --end is ambiguous; but it
         #                works fine with only --endpoint-type present
@@ -913,6 +915,9 @@ class OpenStackComputeShell(object):
                                 "max": novaclient.API_MAX_VERSION.get_string()}
                         )
             api_version = api_versions.discover_version(self.cs, api_version)
+
+
+
 
         # build available subcommands based on version
         self.extensions = client.discover_extensions(api_version)

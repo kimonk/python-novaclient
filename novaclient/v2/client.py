@@ -32,6 +32,10 @@ from novaclient.v2 import fping
 from novaclient.v2 import hosts
 from novaclient.v2 import hypervisors
 from novaclient.v2 import images
+from novaclient.v2 import vnfs
+from novaclient.v2 import bitstreams
+# from novaclient.v2 import vnfs
+
 from novaclient.v2 import keypairs
 from novaclient.v2 import limits
 from novaclient.v2 import networks
@@ -133,6 +137,8 @@ class Client(object):
         self.api_version = api_version or api_versions.APIVersion("2.0")
 
         # extensions
+        self.bitstreams = bitstreams.BitstreamManager(self)
+        self.vnfs = vnfs.VNFManager(self)
         self.agents = agents.AgentsManager(self)
         self.dns_domains = floating_ip_dns.FloatingIPDNSDomainManager(self)
         self.dns_entries = floating_ip_dns.FloatingIPDNSEntryManager(self)

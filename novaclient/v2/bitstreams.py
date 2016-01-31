@@ -23,7 +23,7 @@ from novaclient import base
 
 class Bitstream(base.Resource):
     """
-    An image is a collection of files used to create or rebuild a server.
+    An bitstream is a collection of files used to create or rebuild a server.
     """
     HUMAN_ID = True
 
@@ -37,7 +37,7 @@ class Bitstream(base.Resource):
         self.manager.delete(self)
 
 
-class ImageManager(base.ManagerWithFind):
+class BitstreamManager(base.ManagerWithFind):
     """
     Manage :class:`Bitstream` resources.
     """
@@ -50,7 +50,7 @@ class ImageManager(base.ManagerWithFind):
         :param image: The ID of the Bitstream to get.
         :rtype: :class:`Bitstream`
         """
-        return self._get("/images/%s" % base.getid(image), "image")
+        return self._get("/bitstreams/%s" % base.getid(image), "image")
 
     def list(self, detailed=True, limit=None, marker=None):
         """
@@ -71,7 +71,8 @@ class ImageManager(base.ManagerWithFind):
             params['marker'] = str(marker)
         params = sorted(params.items(), key=lambda x: x[0])
         query = '?%s' % parse.urlencode(params) if params else ''
-        return self._list('/bitstreams%s%s' % (detail, query), 'bitstreams')
+
+        return self._list('/bitstreams%s%s' % (detail, query), 'images')
 
     def delete(self, image):
         """

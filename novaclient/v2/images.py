@@ -27,6 +27,8 @@ class Image(base.Resource):
     """
     HUMAN_ID = True
 
+
+
     def __repr__(self):
         return "<Image: %s>" % self.name
 
@@ -61,6 +63,9 @@ class ImageManager(base.ManagerWithFind):
         :param marker: Begin returning images that appear later in the image
                        list than that represented by this image id (optional).
         """
+
+        #print("tnova debuged ")
+
         params = {}
         detail = ''
         if detailed:

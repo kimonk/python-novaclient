@@ -356,7 +356,19 @@ def _boot(cs, args):
     metavar='<image>',
     help=_("Name or ID of image (see 'nova image-list'). "))
 @cliutils.arg(
+    '--bitstream',
+    default=None,
+    metavar='<bitstream>',
+    help=_("Name or ID of bitstream (see 'nova image-list'). "))
+@cliutils.arg(
     '--image-with',
+    default=[],
+    type=_key_value_pairing,
+    action='append',
+    metavar='<key=value>',
+    help=_("Image metadata property (see 'nova image-show'). "))
+@cliutils.arg(
+    '--bitstream-with',
     default=[],
     type=_key_value_pairing,
     action='append',
@@ -1185,19 +1197,22 @@ def do_network_create(cs, args):
     metavar="<limit>",
     help=_('Number of images to return per request.'))
 def do_image_list(cs, _args):
+
+    print("reached here")
     """Print a list of available images to boot from."""
     limit = _args.limit
     image_list = cs.images.list(limit=limit)
 
-    def parse_server_name(image):
-        try:
-            return image.server['id']
-        except (AttributeError, KeyError):
-            return ''
+    # def parse_server_name(image):
+    #     try:
+    #         return image.server['id']
+    #     except (AttributeError, KeyError):
+    #         return ''
 
-    fmts = {'Server': parse_server_name}
+    # fmts = {'Server': parse_server_name}
     utils.print_list(image_list, ['ID', 'Name', 'Status', 'Server'],
-                     fmts, sortby_index=1)
+                     "", sortby_index=1)
+
 
 
 @cliutils.arg(
@@ -1266,6 +1281,133 @@ def _print_image(image):
         pass
 
     utils.print_dict(info)
+
+
+
+
+
+
+@cliutils.arg(
+    '--limit',
+    dest="limit",
+    metavar="<limit>",
+    help=_('Number of images to return per request.'))
+def do_bitstream_list(cs, _args):
+
+    print("reached here")
+    """Print a list of available bitstream to boot from."""
+    limit = _args.limit
+    bitstream_list = cs.bitstreams.list(limit=limit)
+
+    # def parse_server_name(image):
+    #     try:
+    #         return image.server['id']
+    #     except (AttributeError, KeyError):
+    #         return ''
+
+    # fmts = {'Server': parse_server_name}
+    utils.print_list(bitstream_list, ['ID', 'Name', 'Status', 'Server'],
+                     "", sortby_index=1)
+
+
+
+@cliutils.arg(
+    'bitstream',
+    metavar='<bitstream>',
+    help=_("Name or ID of bitstream."))
+@cliutils.arg(
+    'action',
+    metavar='<action>',
+    choices=['set', 'delete'],
+    help=_("Actions: 'set' or 'delete'."))
+@cliutils.arg(
+    'metadata',
+    metavar='<key=value>',
+    nargs='+',
+    action='append',
+    default=[],
+    help=_('Metadata to add/update or delete (only key is necessary on '
+           'delete).'))
+def do_bitstream_meta(cs, args):
+    """Set or delete metadata on an bitstream."""
+    bitstream = _find_bitstream(cs, args.bitstream)
+    metadata = _extract_metadata(args)
+
+    if args.action == 'set':
+        cs.bitstreams.set_meta(bitstream, metadata)
+    elif args.action == 'delete':
+        cs.bitstreams.delete_meta(bitstream, metadata.keys())
+
+
+def _extract_metadata(args):
+    metadata = {}
+    for metadatum in args.metadata[0]:
+        # Can only pass the key in on 'delete'
+        # So this doesn't have to have '='
+        if metadatum.find('=') > -1:
+            (key, value) = metadatum.split('=', 1)
+        else:
+            key = metadatum
+            value = None
+
+        metadata[key] = value
+    return metadata
+
+
+def _print_bitstream(bitstream):
+    info = bitstream._info.copy()
+
+    # ignore links, we don't need to present those
+    info.pop('links')
+
+    # try to replace a server entity to just an id
+    server = info.pop('server', None)
+    try:
+        info['server'] = server['id']
+    except (KeyError, TypeError):
+        pass
+
+    # break up metadata and display each on its own row
+    metadata = info.pop('metadata', {})
+    try:
+        for key, value in metadata.items():
+            _key = 'metadata %s' % key
+            info[_key] = value
+    except AttributeError:
+        pass
+
+    utils.print_dict(info)
+
+
+
+@cliutils.arg(
+    'bitstream',
+    metavar='<bitstream>',
+    help=_("Name or ID of bitstream."))
+def do_bitstream_show(cs, args):
+    """Show details about the given image."""
+    bitstream = _find_bitstream(cs, args.bitstream)
+    _print_bitstream(bitstream)
+
+
+@cliutils.arg(
+    'bitstream', metavar='<bitstream>', nargs='+',
+    help=_('Name or ID of bitstream(s).'))
+def do_bitstream_delete(cs, args):
+    """Delete specified image(s)."""
+    for bitstream in args.bitstream:
+        try:
+            _find_bitstream(cs, bitstream).delete()
+        except Exception as e:
+            print(_("Delete for bitstream %(bitstream)s failed: %(e)s") %
+                  {'bitstream': bitstream, 'e': e})
+
+
+
+
+
+
+
 
 
 def _print_flavor(flavor):
@@ -2078,6 +2220,14 @@ def _find_server(cs, server, **find_args):
 def _find_image(cs, image):
     """Get an image by name or ID."""
     return utils.find_resource(cs.images, image)
+
+
+
+
+
+def _find_bitstream(cs, bitstream):
+    """Get an image by name or ID."""
+    return utils.find_resource(cs.bitstream, bitstream)
 
 
 def _find_flavor(cs, flavor):
