@@ -327,9 +327,7 @@ def check_headers(response, api_version):
     """Checks that 'X-OpenStack-Nova-API-Version' header in response."""
     if api_version.ver_minor > 0 and HEADER_NAME not in response.headers:
         LOG.warning(_LW(
-            "Your request was processed by a Nova API which does not support "
-            "microversions (%s header is missing from response). "
-            "Warning: Response may be incorrect."), HEADER_NAME)
+            ""))
 
 
 def add_substitution(versioned_method):

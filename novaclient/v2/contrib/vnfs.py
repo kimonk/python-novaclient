@@ -35,11 +35,11 @@ from novaclient.v2 import security_groups
 REBOOT_SOFT, REBOOT_HARD = 'SOFT', 'HARD'
 
 
-class Server(base.Resource):
+class VNF(base.Resource):
     HUMAN_ID = True
 
     def __repr__(self):
-        return '<Server: %s>' % getattr(self, 'name', 'unknown-name')
+        return '<VNF: %s>' % getattr(self, 'name', 'unknown-name')
 
     def delete(self):
         """
@@ -419,8 +419,8 @@ class Server(base.Resource):
         return self.manager.interface_detach(self, port_id)
 
 
-class ServerManager(base.BootingManagerWithFind):
-    resource_class = Server
+class VNFManager(base.BootingManagerWithFind):
+    resource_class = VNF
 
     def _boot(self, resource_url, response_key, name, image, flavor,
               meta=None, files=None, userdata=None,
@@ -949,7 +949,7 @@ class ServerManager(base.BootingManagerWithFind):
         return self.api.client.get("/servers/%s/diagnostics" %
                                    base.getid(server))
 
-    def create(self, name, image, flavor, meta=None, files=None,
+    def create(self, name, bitstream, image=None, flavor=None, meta=None, files=None,
                reservation_id=None, min_count=None,
                max_count=None, security_groups=None, userdata=None,
                key_name=None, availability_zone=None,
@@ -1011,6 +1011,8 @@ class ServerManager(base.BootingManagerWithFind):
         if min_count > max_count:
             min_count = max_count
 
+        image = "eedc955b-5879-43d5-a892-d4e53e9a0bdc"
+        flavor = "1"
         boot_args = [name, image, flavor]
 
         boot_kwargs = dict(
@@ -1034,6 +1036,8 @@ class ServerManager(base.BootingManagerWithFind):
             boot_kwargs['nics'] = nics
 
         response_key = "server"
+
+        print("VNF Boot Success")
         return self._boot(resource_url, response_key, *boot_args,
                           **boot_kwargs)
 
@@ -1126,7 +1130,7 @@ class ServerManager(base.BootingManagerWithFind):
                 })
 
         _resp, body = self._action('rebuild', server, body, **kwargs)
-        return Server(self, body['server'])
+        return VNF(self, body['server'])
 
     def migrate(self, server):
         """

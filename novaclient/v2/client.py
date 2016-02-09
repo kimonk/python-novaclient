@@ -32,9 +32,9 @@ from novaclient.v2 import fping
 from novaclient.v2 import hosts
 from novaclient.v2 import hypervisors
 from novaclient.v2 import images
-from novaclient.v2 import vnfs
-from novaclient.v2 import bitstreams
-# from novaclient.v2 import vnfs
+from novaclient.v2.contrib import vnfs
+from novaclient.v2.contrib import bitstreams
+from novaclient.v2.contrib import vnfs
 
 from novaclient.v2 import keypairs
 from novaclient.v2 import limits
