@@ -1403,8 +1403,312 @@ def do_bitstream_delete(cs, args):
                   {'bitstream': bitstream, 'e': e})
 
 
+     ##################################  VNFS ###############################
+
+@cliutils.arg(
+    '--reservation-id',
+    dest='reservation_id',
+    metavar='<reservation-id>',
+    default=None,
+    help=_('Only return servers that match reservation-id.'))
+@cliutils.arg(
+    '--reservation_id',
+    action=shell.DeprecatedAction,
+    use=_('use "%s"; this option will be removed in '
+          'novaclient 3.3.0.') % '--reservation-id',
+    help=argparse.SUPPRESS)
+@cliutils.arg(
+    '--ip',
+    dest='ip',
+    metavar='<ip-regexp>',
+    default=None,
+    help=_('Search with regular expression match by IP address.'))
+@cliutils.arg(
+    '--ip6',
+    dest='ip6',
+    metavar='<ip6-regexp>',
+    default=None,
+    help=_('Search with regular expression match by IPv6 address.'))
+@cliutils.arg(
+    '--name',
+    dest='name',
+    metavar='<name-regexp>',
+    default=None,
+    help=_('Search with regular expression match by name.'))
+@cliutils.arg(
+    '--instance-name',
+    dest='instance_name',
+    metavar='<name-regexp>',
+    default=None,
+    help=_('Search with regular expression match by server name.'))
+@cliutils.arg(
+    '--instance_name',
+    action=shell.DeprecatedAction,
+    use=_('use "%s"; this option will be removed in '
+          'novaclient 3.3.0.') % '--instance-name',
+    help=argparse.SUPPRESS)
+@cliutils.arg(
+    '--status',
+    dest='status',
+    metavar='<status>',
+    default=None,
+    help=_('Search by server status.'))
+@cliutils.arg(
+    '--flavor',
+    dest='flavor',
+    metavar='<flavor>',
+    default=None,
+    help=_('Search by flavor name or ID.'))
+@cliutils.arg(
+    '--image',
+    dest='image',
+    metavar='<image>',
+    default=None,
+    help=_('Search by image name or ID.'))
+@cliutils.arg(
+    '--host',
+    dest='host',
+    metavar='<hostname>',
+    default=None,
+    help=_('Search servers by hostname to which they are assigned (Admin '
+           'only).'))
+@cliutils.arg(
+    '--all-tenants',
+    dest='all_tenants',
+    metavar='<0|1>',
+    nargs='?',
+    type=int,
+    const=1,
+    default=int(strutils.bool_from_string(
+        os.environ.get("ALL_TENANTS", 'false'), True)),
+    help=_('Display information from all tenants (Admin only).'))
+@cliutils.arg(
+    '--all_tenants',
+    nargs='?',
+    type=int,
+    const=1,
+    action=shell.DeprecatedAction,
+    use=_('use "%s"; this option will be removed in '
+          'novaclient 3.3.0.') % '--all-tenants',
+    help=argparse.SUPPRESS)
+@cliutils.arg(
+    '--tenant',
+    # nova db searches by project_id
+    dest='tenant',
+    metavar='<tenant>',
+    nargs='?',
+    help=_('Display information from single tenant (Admin only).'))
+@cliutils.arg(
+    '--user',
+    dest='user',
+    metavar='<user>',
+    nargs='?',
+    help=_('Display information from single user (Admin only).'))
+@cliutils.arg(
+    '--deleted',
+    dest='deleted',
+    action="store_true",
+    default=False,
+    help=_('Only display deleted servers (Admin only).'))
+@cliutils.arg(
+    '--fields',
+    default=None,
+    metavar='<fields>',
+    help=_('Comma-separated list of fields to display. '
+           'Use the show command to see which fields are available.'))
+@cliutils.arg(
+    '--minimal',
+    dest='minimal',
+    action="store_true",
+    default=False,
+    help=_('Get only UUID and name.'))
+@cliutils.arg(
+    '--sort',
+    dest='sort',
+    metavar='<key>[:<direction>]',
+    help=('Comma-separated list of sort keys and directions in the form'
+          ' of <key>[:<asc|desc>]. The direction defaults to descending if'
+          ' not specified.'))
+@cliutils.arg(
+    '--marker',
+    dest='marker',
+    metavar='<marker>',
+    default=None,
+    help=('The last server UUID of the previous page; displays list of servers'
+          ' after "marker".'))
+@cliutils.arg(
+    '--limit',
+    dest='limit',
+    metavar='<limit>',
+    type=int,
+    default=None,
+    help=("Maximum number of servers to display. If limit == -1, all servers "
+          "will be displayed. If limit is bigger than "
+          "'osapi_max_limit' option of Nova API, limit 'osapi_max_limit' will "
+          "be used instead."))
+def do_vnf_list(cs, args):
+    """List active servers."""
+    imageid = None
+    flavorid = None
+    if args.image:
+        imageid = _find_image(cs, args.image).id
+    if args.flavor:
+        flavorid = _find_flavor(cs, args.flavor).id
+    # search by tenant or user only works with all_tenants
+    if args.tenant or args.user:
+        args.all_tenants = 1
+    search_opts = {
+        'all_tenants': args.all_tenants,
+        'reservation_id': args.reservation_id,
+        'ip': args.ip,
+        'ip6': args.ip6,
+        'name': args.name,
+        'image': imageid,
+        'flavor': flavorid,
+        'status': args.status,
+        'tenant_id': args.tenant,
+        'user_id': args.user,
+        'host': args.host,
+        'deleted': args.deleted,
+        'instance_name': args.instance_name}
+
+    filters = {'flavor': lambda f: f['id'],
+               'security_groups': utils._format_security_groups}
+
+    id_col = 'ID'
+
+    detailed = not args.minimal
+
+    sort_keys = []
+    sort_dirs = []
+    if args.sort:
+        for sort in args.sort.split(','):
+            sort_key, _sep, sort_dir = sort.partition(':')
+            if not sort_dir:
+                sort_dir = 'desc'
+            elif sort_dir not in ('asc', 'desc'):
+                raise exceptions.CommandError(_(
+                    'Unknown sort direction: %s') % sort_dir)
+            sort_keys.append(sort_key)
+            sort_dirs.append(sort_dir)
+
+    servers = cs.servers.list(detailed=detailed,
+                              search_opts=search_opts,
+                              sort_keys=sort_keys,
+                              sort_dirs=sort_dirs,
+                              marker=args.marker,
+                              limit=args.limit)
+    convert = [('OS-EXT-SRV-ATTR:host', 'host'),
+               ('OS-EXT-STS:task_state', 'task_state'),
+               ('OS-EXT-SRV-ATTR:instance_name', 'instance_name'),
+               ('OS-EXT-STS:power_state', 'power_state'),
+               ('hostId', 'host_id')]
+    _translate_keys(servers, convert)
+    _translate_extended_states(servers)
+
+    formatters = {}
+    field_titles = []
+    non_existent_fields = []
+    if args.fields:
+        for field in args.fields.split(','):
+            if servers and not hasattr(servers[0], field):
+                non_existent_fields.append(field)
+                continue
+            field_title, formatter = utils._make_field_formatter(field,
+                                                                 filters)
+            field_titles.append(field_title)
+            formatters[field_title] = formatter
+        if non_existent_fields:
+            raise exceptions.CommandError(
+                _("Non-existent fields are specified: %s")
+                % non_existent_fields)
+
+    if args.minimal:
+        columns = [
+            id_col,
+            'Name']
+    elif field_titles:
+        columns = [id_col] + field_titles
+    else:
+        columns = [
+            id_col,
+            'Name',
+            'Status',
+            'Task State',
+            'Power State',
+            'Networks'
+        ]
+        # If getting the data for all tenants, print
+        # Tenant ID as well
+        if search_opts['all_tenants']:
+            columns.insert(2, 'Tenant ID')
+    formatters['Networks'] = utils._format_servers_list_networks
+    sortby_index = 1
+    if args.sort:
+        sortby_index = None
+    utils.print_list(servers, columns,
+                     formatters, sortby_index=sortby_index)
 
 
+
+
+
+@cliutils.arg(
+    'vnf',
+    metavar='<vnf>',
+    help=_("Name or ID of vnf."))
+@cliutils.arg(
+    'action',
+    metavar='<action>',
+    choices=['set', 'delete'],
+    help=_("Actions: 'set' or 'delete'."))
+@cliutils.arg(
+    'metadata',
+    metavar='<key=value>',
+    nargs='+',
+    action='append',
+    default=[],
+    help=_('Metadata to add/update or delete (only key is necessary on '
+           'delete).'))
+def do_vnf_meta(cs, args):
+    """Set or delete metadata on an bitstream."""
+    bitstream = _find_bitstream(cs, args.bitstream)
+    metadata = _extract_metadata(args)
+
+    if args.action == 'set':
+        cs.bitstreams.set_meta(bitstream, metadata)
+    elif args.action == 'delete':
+        cs.bitstreams.delete_meta(bitstream, metadata.keys())
+
+
+
+
+
+
+@cliutils.arg(
+    'vnf',
+    metavar='<vnf>',
+    help=_("Name or ID of vnf."))
+def do_vnf_show(cs, args):
+    """Show details about the given image."""
+    bitstream = _find_bitstream(cs, args.bitstream)
+    _print_bitstream(bitstream)
+
+
+@cliutils.arg(
+    'vnf', metavar='<vnf>', nargs='+',
+    help=_('Name or ID of vnf(s).'))
+def do_vnf_delete(cs, args):
+    """Delete specified image(s)."""
+    for bitstream in args.bitstream:
+        try:
+            _find_bitstream(cs, bitstream).delete()
+        except Exception as e:
+            print(_("Delete for bitstream %(bitstream)s failed: %(e)s") %
+                  {'bitstream': bitstream, 'e': e})
+
+
+#################################
 
 
 

@@ -633,7 +633,7 @@ class VNFManager(base.BootingManagerWithFind):
             else:
                 query_string = ""
 
-            servers = self._list("/servers%s%s" % (detail, query_string),
+            servers = self._list("/vnfs%s%s" % (detail, query_string),
                                  "servers")
             result.extend(servers)
 
