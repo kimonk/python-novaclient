@@ -1198,7 +1198,7 @@ def do_network_create(cs, args):
     help=_('Number of images to return per request.'))
 def do_image_list(cs, _args):
 
-    print("reached here")
+    #print("reached here")
     """Print a list of available images to boot from."""
     limit = _args.limit
     image_list = cs.images.list(limit=limit)
@@ -1575,7 +1575,7 @@ def do_vnf_list(cs, args):
     filters = {'flavor': lambda f: f['id'],
                'security_groups': utils._format_security_groups}
 
-    id_col = 'ID'
+    id_col = 'VNF_ID'
 
     detailed = not args.minimal
 
@@ -1592,7 +1592,7 @@ def do_vnf_list(cs, args):
             sort_keys.append(sort_key)
             sort_dirs.append(sort_dir)
 
-    servers = cs.servers.list(detailed=detailed,
+    servers = cs.vnfs.list(detailed=detailed,
                               search_opts=search_opts,
                               sort_keys=sort_keys,
                               sort_dirs=sort_dirs,
@@ -1632,7 +1632,7 @@ def do_vnf_list(cs, args):
     else:
         columns = [
             id_col,
-            'Name',
+            'VNF_Name',
             'Status',
             'Task State',
             'Power State',

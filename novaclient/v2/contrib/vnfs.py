@@ -566,7 +566,7 @@ class VNFManager(base.BootingManagerWithFind):
     def list(self, detailed=True, search_opts=None, marker=None, limit=None,
              sort_keys=None, sort_dirs=None):
         """
-        Get a list of servers.
+        Get a list of vnfs.
 
         :param detailed: Whether to return detailed server info (optional).
         :param search_opts: Search options to filter out servers which don't
@@ -633,11 +633,11 @@ class VNFManager(base.BootingManagerWithFind):
             else:
                 query_string = ""
 
-            servers = self._list("/vnfs%s%s" % (detail, query_string),
+            vnfs = self._list("/vnfs%s%s" % (detail, query_string),
                                  "servers")
-            result.extend(servers)
+            result.extend(vnfs)
 
-            if not servers or limit != -1:
+            if not vnfs or limit != -1:
                 break
             marker = result[-1].id
         return result
