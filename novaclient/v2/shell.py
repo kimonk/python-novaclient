@@ -1592,6 +1592,8 @@ def do_vnf_list(cs, args):
             sort_keys.append(sort_key)
             sort_dirs.append(sort_dir)
 
+
+
     servers = cs.vnfs.list(detailed=detailed,
                               search_opts=search_opts,
                               sort_keys=sort_keys,
