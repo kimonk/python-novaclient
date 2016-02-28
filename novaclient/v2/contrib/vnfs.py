@@ -30,6 +30,7 @@ from novaclient import base
 from novaclient import crypto
 from novaclient.i18n import _
 from novaclient.v2 import security_groups
+from novaclient.v2 import servers
 
 
 REBOOT_SOFT, REBOOT_HARD = 'SOFT', 'HARD'
@@ -1013,7 +1014,8 @@ class VNFManager(base.BootingManagerWithFind):
 
         image = "eedc955b-5879-43d5-a892-d4e53e9a0bdc"
         flavor = "1"
-        boot_args = [name, image, flavor]
+
+
 
         boot_kwargs = dict(
             meta=meta, files=files, userdata=userdata,
@@ -1024,22 +1026,22 @@ class VNFManager(base.BootingManagerWithFind):
             disk_config=disk_config, admin_pass=admin_pass,
             access_ip_v4=access_ip_v4, access_ip_v6=access_ip_v6, **kwargs)
 
-        if block_device_mapping:
-            resource_url = "/os-volumes_boot"
-            boot_kwargs['block_device_mapping'] = block_device_mapping
-        elif block_device_mapping_v2:
-            resource_url = "/os-volumes_boot"
-            boot_kwargs['block_device_mapping_v2'] = block_device_mapping_v2
-        else:
-            resource_url = "/servers"
+        resource_url = "/vnfs"
         if nics:
             boot_kwargs['nics'] = nics
 
         response_key = "server"
 
+        boot_args = [name, image, flavor]
+# launch a normal server
+        self._boot( "/servers", "server", *boot_args,**boot_kwargs)
         print("VNF Boot Success")
-        return self._boot(resource_url, response_key, *boot_args,
-                          **boot_kwargs)
+
+        # launch a vnf instance
+        # return self._boot(resource_url, response_key, *boot_args,
+        #                   **boot_kwargs)
+        # launch a vnf instance
+        return None
 
     def update(self, server, name=None):
         """

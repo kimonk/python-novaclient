@@ -586,6 +586,213 @@ def do_boot(cs, args):
         _poll_for_status(cs.servers.get, server.id, 'building', ['active'])
 
 
+######################vnf boot ########################
+
+
+@cliutils.arg(
+    '--flavor',
+    default=None,
+    metavar='<flavor>',
+    help=_("Name or ID of flavor (see 'nova flavor-list')."))
+@cliutils.arg(
+    '--bitstream',
+    default=None,
+    metavar='<image>',
+    help=_("Name or ID of the bitstream (see 'nova bitstream-list'). "))
+@cliutils.arg(
+    '--bitstream-with',
+    default=[],
+    type=_key_value_pairing,
+    action='append',
+    metavar='<key=value>',
+    help=_("Image metadata property (see 'nova image-show'). "))
+@cliutils.arg(
+    '--num-instances',
+    default=None,
+    type=int,
+    metavar='<number>',
+    action=shell.DeprecatedAction,
+    use=_('use "--min-count" and "--max-count"; this option will be removed '
+          'in novaclient 3.3.0.'),
+    help=argparse.SUPPRESS)
+@cliutils.arg(
+    '--meta',
+    metavar="<key=value>",
+    action='append',
+    default=[],
+    help=_("Record arbitrary key/value metadata to /meta_data.json "
+           "on the metadata server. Can be specified multiple times."))
+@cliutils.arg('name', metavar='<name>', help=_('Name for the new server.'))
+@cliutils.arg(
+    '--user-data',
+    default=None,
+    metavar='<user-data>',
+    help=_("user data file to pass to be exposed by the metadata server."))
+@cliutils.arg(
+    '--user_data',
+    action=shell.DeprecatedAction,
+    use=_('use "%s"; this option will be removed in '
+          'novaclient 3.3.0.') % '--user-data',
+    help=argparse.SUPPRESS)
+@cliutils.arg(
+    '--hint',
+    action='append',
+    dest='scheduler_hints',
+    default=[],
+    metavar='<key=value>',
+    help=_("Send arbitrary key/value pairs to the scheduler for custom "
+           "use."))
+@cliutils.arg(
+    '--availability-zone',
+    default=None,
+    metavar='<availability-zone>',
+    help=_("The availability zone for server placement."))
+@cliutils.arg(
+    '--availability_zone',
+    action=shell.DeprecatedAction,
+    use=_('use "%s"; this option will be removed in '
+          'novaclient 3.3.0.') % '--availability-zone',
+    help=argparse.SUPPRESS)
+@cliutils.arg(
+    '--security-groups',
+    default=None,
+    metavar='<security-groups>',
+    help=_("Comma separated list of security group names."))
+@cliutils.arg(
+    '--security_groups',
+    action=shell.DeprecatedAction,
+    use=_('use "%s"; this option will be removed in '
+          'novaclient 3.3.0.') % '--security-groups',
+    help=argparse.SUPPRESS)
+@cliutils.arg(
+    '--poll',
+    dest='poll',
+    action="store_true",
+    default=False,
+    help=_('Report the new vnf boot progress until it completes.'))
+@cliutils.arg(
+    '--admin-pass',
+    dest='admin_pass',
+    metavar='<value>',
+    default=None,
+    help=_('Admin password for the vnf instance.'))
+@cliutils.arg(
+    '--access-ip-v4',
+    dest='access_ip_v4',
+    metavar='<value>',
+    default=None,
+    help=_('Alternative access IPv4 of the vnf instance.'))
+@cliutils.arg(
+    '--access-ip-v6',
+    dest='access_ip_v6',
+    metavar='<value>',
+    default=None,
+    help=_('Alternative access IPv6 of the instance.'))
+def do_vnf_boot(cs, args):
+    """Boot a new server."""
+
+    # check if the args are ok
+    boot_args, boot_kwargs = _boot_vnf(cs, args)
+
+    extra_boot_kwargs = utils.get_resource_manager_extra_kwargs(do_boot, args)
+    boot_kwargs.update(extra_boot_kwargs)
+
+    server = cs.vnfs.create(*boot_args, **boot_kwargs)
+    # _print_server(cs, args, server)
+
+    if args.poll:
+        _poll_for_status(cs.servers.get, server.id, 'building', ['active'])
+
+
+
+
+
+
+def _boot_vnf(cs, args):
+    """Boot a new server."""
+    # if not args.flavor:
+    #     raise exceptions.CommandError(_("you need to specify a Flavor ID."))
+
+    if args.bitstream:
+        image = _find_image(cs, args.bitstream)
+    else:
+        image = None
+
+    if not image and args.image_with:
+        images = _match_image(cs, args.image_with)
+        if images:
+            # TODO(harlowja): log a warning that we
+            # are selecting the first of many?
+            image = images[0]
+
+
+
+    # flavor = _find_flavor(cs, args.flavor)
+
+    meta = _meta_parsing(args.meta)
+
+
+    if args.user_data:
+        try:
+            userdata = open(args.user_data)
+        except IOError as e:
+            raise exceptions.CommandError(_("Can't open '%(user_data)s': "
+                                            "%(exc)s") %
+                                          {'user_data': args.user_data,
+                                           'exc': e})
+    else:
+        userdata = None
+
+    if args.availability_zone:
+        availability_zone = args.availability_zone
+    else:
+        availability_zone = None
+
+    if args.security_groups:
+        security_groups = args.security_groups.split(',')
+    else:
+        security_groups = None
+
+    hints = {}
+    if args.scheduler_hints:
+        for hint in args.scheduler_hints:
+            key, _sep, value = hint.partition('=')
+            # NOTE(vish): multiple copies of the same hint will
+            #             result in a list of values
+            if key in hints:
+                if isinstance(hints[key], six.string_types):
+                    hints[key] = [hints[key]]
+                hints[key] += [value]
+            else:
+                hints[key] = value
+    boot_args = [args.name, image]
+
+
+
+    boot_kwargs = dict(
+        meta=meta,
+        userdata=userdata,
+        availability_zone=availability_zone,
+        security_groups=security_groups,
+        scheduler_hints=hints,
+        admin_pass=args.admin_pass,
+        access_ip_v4=args.access_ip_v4,
+        access_ip_v6=args.access_ip_v6)
+
+    return boot_args, boot_kwargs
+
+
+
+
+
+#####################################################################
+
+
+
+
+
+
+
 def do_cloudpipe_list(cs, _args):
     """Print a list of all cloudpipe instances."""
     cloudpipes = cs.cloudpipe.list()
@@ -1403,7 +1610,7 @@ def do_bitstream_delete(cs, args):
                   {'bitstream': bitstream, 'e': e})
 
 
-     ##################################  VNFS ###############################
+     ################################## vnf-list ###############################
 
 @cliutils.arg(
     '--reservation-id',
@@ -4381,6 +4588,22 @@ def do_host_list(cs, args):
     result = cs.hosts.list(args.zone)
     utils.print_list(result, columns)
 
+
+
+
+##############################fpga#######################
+@cliutils.arg(
+    '--zone',
+    metavar='<zone>',
+    default=None,
+    help=_('Filters the list, returning only those hosts in the availability '
+           'zone <zone>.'))
+def do_fpga_list(cs, args):
+    """List all hosts by service."""
+    columns = ["host_name", "service", "zone"]
+    result = cs.hosts.list(args.zone)
+    utils.print_list(result, columns)
+############################################
 
 @cliutils.arg('host', metavar='<hostname>', help=_('Name of host.'))
 @cliutils.arg(
