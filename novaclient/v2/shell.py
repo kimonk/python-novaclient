@@ -4600,8 +4600,8 @@ def do_host_list(cs, args):
            'zone <zone>.'))
 def do_fpga_list(cs, args):
     """List all hosts by service."""
-    columns = ["host_name", "service", "zone"]
-    result = cs.hosts.list(args.zone)
+    columns = ["fpga_name", "service", "zone"]
+    result = cs.fpgas.list(args.zone)
     utils.print_list(result, columns)
 ############################################
 

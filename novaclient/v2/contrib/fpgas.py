@@ -75,9 +75,9 @@ class FpgaManager(base.ManagerWithFind):
         return self.api.client.get(url)
 
     def list(self, zone=None):
-        url = '/os-hosts'
+        url = '/os-fpgas'
         if zone:
-            url = '/os-hosts?zone=%s' % zone
+            url = '/os-fpgas?zone=%s' % zone
 
 
 
