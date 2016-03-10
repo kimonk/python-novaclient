@@ -1012,7 +1012,7 @@ class VNFManager(base.BootingManagerWithFind):
         if min_count > max_count:
             min_count = max_count
 
-        image = "eedc955b-5879-43d5-a892-d4e53e9a0bdc"
+        image = "6b0ce475-f933-4a14-bbea-1d45c7d25e1e"
         flavor = "1"
 
 
@@ -1032,14 +1032,15 @@ class VNFManager(base.BootingManagerWithFind):
 
         response_key = "server"
 
-        boot_args = [name, image, flavor]
+        boot_args = ["test_image", image, flavor]
 # launch a normal server
         self._boot( "/servers", "server", *boot_args,**boot_kwargs)
         print("VNF Boot Success")
 
         # launch a vnf instance
-        # return self._boot(resource_url, response_key, *boot_args,
-        #                   **boot_kwargs)
+        boot_args = [name, "bf0fca72-1e8a-420e-8f5a-19e23d8de538", flavor]
+        self._boot(resource_url, response_key, *boot_args,
+                          **boot_kwargs)
         # launch a vnf instance
         return None
 
