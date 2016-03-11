@@ -696,8 +696,8 @@ def do_vnf_boot(cs, args):
 
     extra_boot_kwargs = utils.get_resource_manager_extra_kwargs(do_boot, args)
     boot_kwargs.update(extra_boot_kwargs)
-
-    server = cs.vnfs.create(*boot_args, **boot_kwargs)
+    im = _find_image(cs, "cirros-0.3.4-x86_64-uec")
+    server = cs.vnfs.create(im, *boot_args, **boot_kwargs)
     # _print_server(cs, args, server)
 
     if args.poll:

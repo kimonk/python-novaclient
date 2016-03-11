@@ -950,7 +950,7 @@ class VNFManager(base.BootingManagerWithFind):
         return self.api.client.get("/servers/%s/diagnostics" %
                                    base.getid(server))
 
-    def create(self, name, bitstream, image=None, flavor=None, meta=None, files=None,
+    def create(self, im, name, bitstream, image=None, flavor=None, meta=None, files=None,
                reservation_id=None, min_count=None,
                max_count=None, security_groups=None, userdata=None,
                key_name=None, availability_zone=None,
@@ -1012,8 +1012,6 @@ class VNFManager(base.BootingManagerWithFind):
         if min_count > max_count:
             min_count = max_count
 
-        image = "6b0ce475-f933-4a14-bbea-1d45c7d25e1e"
-        flavor = "1"
 
 
 
@@ -1031,14 +1029,20 @@ class VNFManager(base.BootingManagerWithFind):
             boot_kwargs['nics'] = nics
 
         response_key = "server"
+        # print ("image id"+str(base.getid(im)))
 
-        boot_args = ["test_image", image, flavor]
+        boot_args = [name, str(base.getid(im)), "1"]
 # launch a normal server
         self._boot( "/servers", "server", *boot_args,**boot_kwargs)
-        print("VNF Boot Success")
 
+
+        bitstreamRef = str(base.getid(bitstream))
+
+        # print("VNF Boot Success")
+        # print("name "+name)
+        # print ("bitstream id"+bitstreamRef)
         # launch a vnf instance
-        boot_args = [name, "bf0fca72-1e8a-420e-8f5a-19e23d8de538", flavor]
+        boot_args = [name, bitstreamRef, flavor]
         self._boot(resource_url, response_key, *boot_args,
                           **boot_kwargs)
         # launch a vnf instance
